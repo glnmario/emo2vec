@@ -33,7 +33,6 @@ def build_fuzzy_lexicon(lexicon_path):
     Based on the emotion lexicon, create a mapping from an emotion word to its label probability distribution
     """
     lexicon = dict()
-
     with open(lexicon_path, 'r') as f:
         emo_idx = 0  # anger: 0, anticipation: 1, disgust: 2, fear: 3, joy: 4, sadness: 5, surprise: 6, trust: 7
 
@@ -42,7 +41,6 @@ def build_fuzzy_lexicon(lexicon_path):
 
             if emotion == 'anger':  # i.e. if lemma not in lexicon.keys()
                 lexicon[lemma] = np.empty(shape=(NUM_EMOTIONS,))
-
             if emotion == 'positive' or emotion == 'negative':
                 continue
 
@@ -53,7 +51,6 @@ def build_fuzzy_lexicon(lexicon_path):
             else:
                 # normalize: emotion-label probabilities for a lemma should sum up to 1
                 lexicon[lemma] = normalize(lexicon[lemma])
-
                 # reset index - next line contains a new lemma
                 emo_idx = 0
     return lexicon
@@ -89,12 +86,10 @@ for seq in sequences:
     for token_id in seq:
         if token_id == 0:  # we reached the padding zeros
             break
-
         token = index_to_word[token_id]
         if token in prob_lexicon.keys():
             seq_labels[j] += prob_lexicon[token]
-
-        j += 1  # next token
+        j += 1
 
     fuzzy_labels.append(normalize(np.add.reduce(seq_labels)))
 

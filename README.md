@@ -1,17 +1,15 @@
 # emo2vec
-#####Learning emotion-specific embeddings.
+Learning emotion-specific embeddings.
 
-\ \ \ \ \ 
 
-####Code
+#### Code
 
 - `skipgram_ns.py` is a [Keras](https://keras.io/) implementation of the skip-gram model
 - `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
 - `analysis.py` only computes, for now, agreement between gold standard and otherwise obtained labels
 
-\ \ 
 
-####Resources
+#### Resources
 
 - **NRC Word-Emotion Association Lexicon** aka EmoLex: association of words with eight emotions (anger, fear, anticipation, trust, surprise, sadness, joy, and disgust) and two sentiments (negative and positive) manually annotated on Amazon's Mechanical Turk. The English version of this lexicon is used in emo2vec, it contains 14,182 unigrams.
 
