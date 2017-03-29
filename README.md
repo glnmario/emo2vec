@@ -1,5 +1,5 @@
 # emo2vec
-##### Learning emotion-specific embeddings.
+Learning emotion-specific embeddings.
 
 
 #### Code
