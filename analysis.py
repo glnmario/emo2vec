@@ -1,10 +1,12 @@
 import numpy as np
 from pickle import load
+from gensim.models.keyedvectors import KeyedVectors
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
 LEXICON_PATH = RESOURCES_PATH + 'emolex.txt'
 LABELS_PATH = RESOURCES_PATH + 'labels.p'
+MODEL_PATH = RESOURCES_PATH + 'vectors.txt'
 NUM_SAMPLES = 10000
 
 label_to_index = {'anger': 0,
@@ -68,3 +70,11 @@ random_agreement /= NUM_SAMPLES
 
 print('Random labels agreement (mean of {0} samples): {1}'.format(NUM_SAMPLES, random_agreement))
 print('Trivial labels agreement: {}'.format(agreement(gold_labels, trivial_labels)))
+
+
+w2v = KeyedVectors.load_word2vec_format(MODEL_PATH, binary=False)
+
+print(w2v.most_similar(positive=['surprise']))
+print(w2v.most_similar(positive=['happy']))
+print(w2v.most_similar(positive=['angry']))
+print(w2v.most_similar(positive=['disgusted']))
