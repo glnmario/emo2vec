@@ -1,18 +1,17 @@
-from keras.preprocessing.sequence import skipgrams
+from keras.layers import Activation, Embedding, Merge, Reshape
 from keras.models import Sequential
-from keras.layers import Embedding, Reshape, Activation, Merge
+from keras.preprocessing.sequence import skipgrams
 from keras.preprocessing.text import Tokenizer
-from gensim.models.keyedvectors import KeyedVectors
 import numpy as np
 np.random.seed(13)
 
-
-TRAIN_OVER_TEST = 0.7
+RESOURCES_PATH = 'resources/'
+CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
+OUTPUT_MODEL = RESOURCES_PATH + 'vectors.txt'
+EMBEDDING_DIM = 150
+EPOCHS = 50
 MAX_SEQUENCE_LENGTH = 50
-EMBEDDING_DIM = 300
-EPOQUES = 50
-CORPUS_PATH = '../twitter_corpus.txt'
-MODEL_PATH = 'vectors.txt'
+TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
                 'anticipation': 1,
@@ -22,6 +21,8 @@ labels_index = {'anger': 0,
                 'sadness': 5,
                 'surprise': 6,
                 'trust': 7}
+
+print('Processing text dataset')
 
 # texts[i] has emotion_labels[i]
 texts = []
@@ -44,6 +45,8 @@ V = len(word_to_index)  # vocabulary size
 
 print('Found %s unique tokens.' % V)
 
+print('Build model...')
+
 # target
 target = Sequential()
 target.add(Embedding(V + 1, EMBEDDING_DIM, input_length=1))
@@ -59,7 +62,8 @@ model.add(Reshape((1,), input_shape=(1, 1)))
 model.add(Activation('sigmoid'))
 model.compile(loss="binary_crossentropy", optimizer="rmsprop")
 
-for _ in range(EPOQUES):
+print('Train...')
+for _ in range(EPOCHS):
     loss = 0.
     for seq in sequences:
         data, labels = skipgrams(sequence=seq, vocabulary_size=V + 1, window_size=5, negative_samples=5.)
@@ -69,7 +73,8 @@ for _ in range(EPOQUES):
             loss += model.train_on_batch(X, Y)
     print(loss)
 
-with open(MODEL_PATH, 'w') as f:
+print('Write word vectors to %'.format(OUTPUT_MODEL))
+with open(OUTPUT_MODEL, 'w') as f:
     f.write(" ".join([str(V), str(EMBEDDING_DIM)]))
     f.write("\n")
 
@@ -80,10 +85,3 @@ with open(MODEL_PATH, 'w') as f:
         f.write(" ")
         f.write(" ".join(map(str, list(vectors[i, :]))))
         f.write("\n")
-
-w2v = KeyedVectors.load_word2vec_format('./vectors.txt', binary=False)
-
-print(w2v.most_similar(positive=['surprise']))
-print(w2v.most_similar(positive=['happy']))
-print(w2v.most_similar(positive=['angry']))
-print(w2v.most_similar(positive=['disgusted']))
