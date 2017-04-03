@@ -1,19 +1,21 @@
-from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Embedding, Input, Conv1D, MaxPooling1D, Dense, Flatten
+from __future__ import print_function
+from keras.layers import Conv1D, Dense, Embedding, Flatten, Input, MaxPooling1D
 from keras.models import Model
+from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 import numpy as np
 np.random.seed(13)
 
-
-TRAIN_OVER_TEST = 0.7
-MAX_SEQUENCE_LENGTH = 50
-EMBEDDING_DIM = 150
-EPOQUES = 50
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-MODEL_PATH = RESOURCES_PATH + 'vectors.txt'
+OUTPUT_MODEL = RESOURCES_PATH + 'conv_vectors.txt'
+PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
+BATCH_SIZE = 128
+EMBEDDING_DIM = 150
+EPOCHS = 10
+MAX_SEQUENCE_LENGTH = 50
+TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
                 'anticipation': 1,
@@ -27,7 +29,7 @@ labels_index = {'anger': 0,
 print('Indexing word vectors.')
 
 embeddings_index = {}
-f = open(MODEL_PATH, 'r')
+f = open(PRETRAINED_MODEL, 'r')
 for line in f:
     values = line.split()
     word = values[0]
@@ -37,7 +39,6 @@ f.close()
 
 print('Found %s word vectors.' % len(embeddings_index))
 
-# second, prepare text samples and their labels
 print('Processing text dataset')
 
 # texts[i] has emotion_labels[i]
@@ -59,13 +60,10 @@ sequences = tokenizer.texts_to_sequences(texts)  # one sequence of tokens per te
 word_to_index = tokenizer.word_index  # dictionary mapping words (str) to their rank/index (int)
 V = len(word_to_index)  # vocabulary size
 
-print('Found %s unique tokens.' % V)
-
 data = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH)
-
 emotion_labels = to_categorical(np.asarray(emotion_labels))
-print('Shape of data tensor:', data.shape)  # (21051, 25)
-print('Shape of label tensor:', emotion_labels.shape)  # (21051, 7)   WHY SEVEN?
+print('Shape of data tensor:', data.shape)
+print('Shape of label tensor:', emotion_labels.shape)
 
 # split the data into a training set and a validation set
 indices = np.arange(data.shape[0])
@@ -84,8 +82,7 @@ print('Preparing embedding matrix.')
 embedding_matrix = np.zeros((V + 1, EMBEDDING_DIM))
 
 # prepare embedding matrix
-num_words = min(MAX_SEQUENCE_LENGTH, V)
-embedding_matrix = np.zeros((num_words, EMBEDDING_DIM))
+embedding_matrix = np.zeros(MAX_SEQUENCE_LENGTH, EMBEDDING_DIM)
 for word, i in word_to_index.items():
     if i >= MAX_SEQUENCE_LENGTH:
         continue
@@ -96,19 +93,19 @@ for word, i in word_to_index.items():
 
 # load pre-trained word embeddings into an Embedding layer
 # note that we set trainable = True so as to let the embeddings vary
-embedding_layer = Embedding(num_words,
+embedding_layer = Embedding(MAX_SEQUENCE_LENGTH,
                             EMBEDDING_DIM,
                             weights=[embedding_matrix],
                             input_length=MAX_SEQUENCE_LENGTH,
                             trainable=True)
 
-print('Training model.')
-
+print('Build model...')
 # train a 1D convnet with global maxpooling
 sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
-x = Conv1D(128, 5, activation='relu')(embedded_sequences)
-x = MaxPooling1D(5)(x)
+
+x = Conv1D(filters=128, kernel_size=5, activation='relu')(embedded_sequences)
+x = MaxPooling1D(pool_size=5)(x)
 x = Conv1D(128, 5, activation='relu')(x)
 x = MaxPooling1D(5)(x)
 x = Conv1D(128, 5, activation='relu')(x)
@@ -122,7 +119,27 @@ model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['acc'])
 
+print('Train...')
 model.fit(x_train, y_train,
-          batch_size=128,
-          epochs=10,
+          batch_size=BATCH_SIZE,
+          epochs=EPOCHS,
           validation_data=(x_test, y_test))
+
+score, acc = model.evaluate(x_test, y_test,
+                            batch_size=BATCH_SIZE)
+
+print('Test score:', score)
+print('Test accuracy:', acc)
+
+print('Write word vectors to %'.format(OUTPUT_MODEL))
+with open(OUTPUT_MODEL, 'w') as f:
+    f.write(" ".join([str(V), str(EMBEDDING_DIM)]))
+    f.write("\n")
+
+    vectors = model.get_weights()[0][0]  # shape: V x EMBEDDING_DIM  (e.g. V x 300)
+
+    for word, i in word_to_index.items():
+        f.write(word)
+        f.write(" ")
+        f.write(" ".join(map(str, list(vectors[i, :]))))
+        f.write("\n")
