@@ -5,8 +5,11 @@ Learning emotion-specific embeddings.
 #### Code
 
 - `skipgram_ns.py` is a [Keras](https://keras.io/) implementation of the skip-gram model
+- `cnn_emo2vec.py` is a 1D convolutional neural network with pooling used to learn emotion-specific embeddings
+- `lstm_emo2vec.py` is a LSTM recurrent neural network used to learn emotion-specific embeddings
+- `cnn_lstm_emo2vec.py` is the combination of CNN and LSTM
 - `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
-- `analysis.py` only computes, for now, agreement between gold standard and otherwise obtained labels
+- `analysis.py` computes evaluation metrics 
 
 
 #### Resources
