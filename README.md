@@ -9,7 +9,8 @@ Learning emotion-specific embeddings.
 - `lstm_emo2vec.py` is a LSTM recurrent neural network used to learn emotion-specific embeddings
 - `cnn_lstm_emo2vec.py` is the combination of CNN and LSTM
 - `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
-- `analysis.py` computes evaluation metrics 
+- `agreement.py` evaluates agreement between gold standard and otherwise obtained labels
+- `similarity.py` prints the 10 most similar word-vectors to a list of defined target words, according to four different models: skipgram with negative sampling, cnn-emo2vec, lstm-emo2vec, cnn_lstm-emo2vec
 
 
 #### Resources
