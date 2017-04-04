@@ -77,7 +77,6 @@ y_train = emotion_labels[:num_train_samples]
 x_test = data[num_train_samples:]
 y_test = emotion_labels[num_train_samples:]
 
-
 print('Preparing embedding matrix.')
 embedding_matrix = np.zeros((V+1, EMBEDDING_DIM))
 for word, i in word_to_index.items():
