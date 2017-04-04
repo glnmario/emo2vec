@@ -9,11 +9,11 @@ np.random.seed(13)
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-OUTPUT_MODEL = RESOURCES_PATH + 'conv_lstm_vectors.txt'
+OUTPUT_MODEL = RESOURCES_PATH + 'cnn_lstm_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
 BATCH_SIZE = 64
-EMBEDDING_DIM = 150
-EPOCHS = 3
+EMBEDDING_DIM = 300
+EPOCHS = 10
 MAX_SEQUENCE_LENGTH = 50
 TOP_WORDS = 20000
 TRAIN_OVER_TEST = 0.7
@@ -26,22 +26,23 @@ labels_index = {'anger': 0,
                 'sadness': 5,
                 'surprise': 6,
                 'trust': 7}
+NUM_EMOTIONS = len(labels_index)
 
 print('Indexing word vectors.')
 
 embeddings_index = {}
-f = open(PRETRAINED_MODEL, 'r')
-for line in f:
-    values = line.split()
-    word = values[0]
-    coefs = np.asarray(values[1:], dtype='float32')
-    embeddings_index[word] = coefs
-f.close()
+with open(PRETRAINED_MODEL, 'r') as f:
+    next(f)  # skip header
+    for line in f:
+        values = line.split()
+        if len(values) != EMBEDDING_DIM+1:  # probably an error occured during tokenization
+            continue
+        word = values[0]
+        coefs = np.asarray(values[1:], dtype='float32')
+        embeddings_index[word] = coefs
 
 print('Found %s word vectors.' % len(embeddings_index))
 
-
-# second, prepare text samples and their labels
 print('Processing text dataset')
 
 # texts[i] has emotion_labels[i]
@@ -64,7 +65,7 @@ word_to_index = tokenizer.word_index  # dictionary mapping words (str) to their 
 V = len(word_to_index)  # vocabulary size
 
 data = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH)
-emotion_labels = to_categorical(np.asarray(emotion_labels))
+emotion_labels = to_categorical(np.asarray(emotion_labels), NUM_EMOTIONS)
 print('Shape of data tensor:', data.shape)
 print('Shape of label tensor:', emotion_labels.shape)
 
@@ -81,22 +82,16 @@ x_test = data[num_train_samples:]
 y_test = emotion_labels[num_train_samples:]
 
 print('Preparing embedding matrix.')
-
-embedding_matrix = np.zeros((V + 1, EMBEDDING_DIM))
-
-# prepare embedding matrix
-embedding_matrix = np.zeros(MAX_SEQUENCE_LENGTH, EMBEDDING_DIM)
+embedding_matrix = np.zeros((V+1, EMBEDDING_DIM))
 for word, i in word_to_index.items():
-    if i >= MAX_SEQUENCE_LENGTH:
-        continue
     embedding_vector = embeddings_index.get(word)
     if embedding_vector is not None:
         # words not found in embedding index will be all-zeros.
-        embedding_matrix[i] = embedding_vector
+        embedding_matrix[i-1] = embedding_vector
 
 # load pre-trained word embeddings into an Embedding layer
 # note that we set trainable = True so as to let the embeddings vary
-embedding_layer = Embedding(MAX_SEQUENCE_LENGTH,
+embedding_layer = Embedding(V+1,
                             EMBEDDING_DIM,
                             weights=[embedding_matrix],
                             input_length=MAX_SEQUENCE_LENGTH,
@@ -106,10 +101,10 @@ print('Build model...')
 sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = Conv1D(filters=32, kernel_size=3, padding='same', activation='relu')(embedded_sequences)
-x = MaxPooling1D(pool_size=2)(x)
+x = Conv1D(filters=32, kernel_size=8, padding='same', activation='relu')(embedded_sequences)
+x = MaxPooling1D(pool_size=6)(x)
 x = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(x)
-preds = Dense(len(labels_index), activation='sigmoid')(x)
+preds = Dense(NUM_EMOTIONS, activation='sigmoid')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='binary_crossentropy',
@@ -130,12 +125,12 @@ score, acc = model.evaluate(x_test, y_test,
 print('Test score:', score)
 print('Test accuracy:', acc)
 
-print('Write word vectors to %'.format(OUTPUT_MODEL))
+print('Write word vectors to ', OUTPUT_MODEL)
 with open(OUTPUT_MODEL, 'w') as f:
     f.write(" ".join([str(V), str(EMBEDDING_DIM)]))
     f.write("\n")
 
-    vectors = model.get_weights()[0][0]
+    vectors = model.get_weights()[0]  # shape: V x EMBEDDING_DIM  (e.g. V x 300)
 
     for word, i in word_to_index.items():
         f.write(word)
