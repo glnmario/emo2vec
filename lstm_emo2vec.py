@@ -13,7 +13,7 @@ OUTPUT_MODEL = RESOURCES_PATH + 'lstm_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
 BATCH_SIZE = 32
 EMBEDDING_DIM = 300
-EPOCHS = 1
+EPOCHS = 5
 MAX_SEQUENCE_LENGTH = 50
 TOP_WORDS = 20000
 TRAIN_OVER_TEST = 0.7
@@ -105,6 +105,8 @@ model = Model(sequence_input, preds)
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['acc'])
+
+print(model.summary())
 
 print('Train...')
 model.fit(x_train, y_train,
