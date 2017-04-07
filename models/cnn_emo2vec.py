@@ -14,7 +14,6 @@ PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
 BATCH_SIZE = 32
 EMBEDDING_DIM = 300
 EPOCHS = 5
-MAX_SEQUENCE_LENGTH = 50
 TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
@@ -59,11 +58,12 @@ with open(CORPUS_PATH, 'r') as f:
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(texts)
 sequences = tokenizer.texts_to_sequences(texts)  # one sequence of tokens per text input
+max_seq_len = np.max([len(s) for s in sequences])
 
 word_to_index = tokenizer.word_index  # dictionary mapping words (str) to their rank/index (int)
 V = len(word_to_index)  # vocabulary size
 
-data = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH)
+data = pad_sequences(sequences, maxlen=max_seq_len)
 emotion_labels = to_categorical(np.asarray(emotion_labels), NUM_EMOTIONS)
 print('Shape of data tensor:', data.shape)
 print('Shape of label tensor:', emotion_labels.shape)
@@ -93,11 +93,11 @@ for word, i in word_to_index.items():
 embedding_layer = Embedding(V+1,
                             EMBEDDING_DIM,
                             weights=[embedding_matrix],
-                            input_length=MAX_SEQUENCE_LENGTH,
+                            input_length=max_seq_len,
                             trainable=True)
 
 print('Build model...')
-sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
 x = Conv1D(filters=256, kernel_size=4, activation='relu')(embedded_sequences)

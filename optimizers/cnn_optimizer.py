@@ -22,7 +22,7 @@ def data():
     CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
     PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
     EMBEDDING_DIM = 300
-    MAX_SEQUENCE_LENGTH = 50
+    MAX_SEQUENCE_LENGTH = 36
     TRAIN_OVER_TEST = 0.7
     numpy.random.seed(13)
 
@@ -112,7 +112,7 @@ def model(x_train, y_train, x_test, y_test, embedding_matrix, V):
 
     NUM_EMOTIONS = 8
     EMBEDDING_DIM = 300
-    MAX_SEQUENCE_LENGTH = 50
+    MAX_SEQUENCE_LENGTH = 36
 
     embedding_layer = Embedding(V + 1,
                                 EMBEDDING_DIM,

@@ -10,7 +10,6 @@ CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
 OUTPUT_MODEL = RESOURCES_PATH + 'vectors.txt'
 EMBEDDING_DIM = 300
 EPOCHS = 50
-MAX_SEQUENCE_LENGTH = 50
 TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,

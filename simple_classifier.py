@@ -71,7 +71,8 @@ with open(CORPUS_PATH, 'r') as f:
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(texts)
 sequences = tokenizer.texts_to_sequences(texts)  # one sequence of tokens per text input
-sequences = pad_sequences(sequences, MAX_SEQUENCE_LENGTH, padding='post')
+max_seq_len = np.max([len(s) for s in sequences])
+sequences = pad_sequences(sequences, max_seq_len, padding='post')
 
 # dictionary mapping an index to the word it represents in the corpus (invert word->index mapping as it is bijective)
 index_to_word = {i: w for w, i in tokenizer.word_index.items()}
@@ -80,7 +81,7 @@ fuzzy_labels = []  # shape=(len(sequences), NUM_EMOTIONS)) -- label probability 
 
 print('Label the texts.')
 for seq in sequences:
-    seq_labels = np.zeros(shape=(MAX_SEQUENCE_LENGTH, NUM_EMOTIONS))
+    seq_labels = np.zeros(shape=(max_seq_len, NUM_EMOTIONS))
     j = 0  # index of token in a sequence (different from token_id)
 
     for token_id in seq:
