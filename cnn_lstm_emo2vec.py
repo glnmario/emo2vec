@@ -104,7 +104,7 @@ embedded_sequences = embedding_layer(sequence_input)
 x = Conv1D(filters=32, kernel_size=8, padding='same', activation='relu')(embedded_sequences)
 x = MaxPooling1D(pool_size=6)(x)
 x = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(x)
-preds = Dense(NUM_EMOTIONS, activation='sigmoid')(x)
+preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='categorial_crossentropy',

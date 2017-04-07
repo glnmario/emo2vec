@@ -13,7 +13,7 @@ OUTPUT_MODEL = RESOURCES_PATH + 'lstm_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
 BATCH_SIZE = 32
 EMBEDDING_DIM = 300
-EPOCHS = 5
+EPOCHS = 2
 MAX_SEQUENCE_LENGTH = 50
 TOP_WORDS = 20000
 TRAIN_OVER_TEST = 0.7
@@ -97,12 +97,12 @@ print('Build model...')
 sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(embedded_sequences)
-preds = Dense(NUM_EMOTIONS, activation='sigmoid')(x)
+x = LSTM(64, dropout=0.1, recurrent_dropout=0.06)(embedded_sequences)
+preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='categorical_crossentropy',
-              optimizer='adam',
+              optimizer='adagrad',
               metrics=['acc'])
 
 print(model.summary())
