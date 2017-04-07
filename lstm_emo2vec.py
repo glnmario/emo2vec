@@ -101,7 +101,7 @@ x = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(embedded_sequences)
 preds = Dense(NUM_EMOTIONS, activation='sigmoid')(x)
 
 model = Model(sequence_input, preds)
-model.compile(loss='binary_crossentropy',
+model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['acc'])
 
