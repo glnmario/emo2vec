@@ -1,5 +1,5 @@
 from __future__ import print_function
-from keras.layers import Conv1D, Dense, Embedding, Input, LSTM, MaxPooling1D
+from keras.layers import Conv1D, Dense, Embedding, Flatten, Input, MaxPooling1D
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
@@ -9,13 +9,12 @@ np.random.seed(13)
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-OUTPUT_MODEL = RESOURCES_PATH + 'cnn_lstm_vectors.txt'
+OUTPUT_MODEL = RESOURCES_PATH + 'cnn_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EMBEDDING_DIM = 300
-EPOCHS = 10
+EPOCHS = 5
 MAX_SEQUENCE_LENGTH = 50
-TOP_WORDS = 20000
 TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
@@ -101,15 +100,20 @@ print('Build model...')
 sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = Conv1D(filters=32, kernel_size=8, padding='same', activation='relu')(embedded_sequences)
-x = MaxPooling1D(pool_size=6)(x)
-x = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(x)
+x = Conv1D(filters=256, kernel_size=4, activation='relu')(embedded_sequences)
+x = MaxPooling1D(pool_size=2)(x)
+x = Conv1D(256, 6, activation='relu')(x)
+x = MaxPooling1D(2)(x)
+x = Conv1D(64, 4, activation='relu')(x)
+x = MaxPooling1D(2)(x)
+x = Flatten()(x)
+x = Dense(256, activation='relu')(x)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
-model.compile(loss='categorial_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
+model.compile(loss='categorical_crossentropy',
+              optimizer='rmsprop',
+              metrics=['acc'])
 
 print(model.summary())
 
@@ -122,7 +126,7 @@ model.fit(x_train, y_train,
 score, acc = model.evaluate(x_test, y_test,
                             batch_size=BATCH_SIZE)
 
-print('Test score:', score)
+print('\nTest score:', score)
 print('Test accuracy:', acc)
 
 print('Write word vectors to ', OUTPUT_MODEL)
