@@ -3,12 +3,7 @@ from pickle import load
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-LEXICON_PATH = RESOURCES_PATH + 'emolex.txt'
 LABELS_PATH = RESOURCES_PATH + 'labels.p'
-MODEL_PATHS = (RESOURCES_PATH + p for p in ['vectors.txt',
-                                            'lstm_vectors.txt',
-                                            'cnn_lstm_vectors.txt',
-                                            'cnn_vectors.txt'])
 NUM_SAMPLES = 10000
 
 label_to_index = {'anger': 0,
