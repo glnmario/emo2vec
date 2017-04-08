@@ -123,14 +123,14 @@ def model(x_train, y_train, x_test, y_test, embedding_matrix, V):
     sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
     embedded_sequences = embedding_layer(sequence_input)
 
-    x = Conv1D(filters={{choice([64, 128, 256])}}, kernel_size={{choice([3, 4, 5, 6])}}, activation={{choice(['relu', 'sigmoid'])}})(embedded_sequences)
+    x = Conv1D(filters={{choice([128, 256, 512])}}, kernel_size={{choice([3, 4, 5])}}, activation={{choice(['relu', 'sigmoid'])}})(embedded_sequences)
     x = MaxPooling1D(pool_size=2)(x)
-    x = Conv1D({{choice([64, 128, 256])}}, {{choice([3, 4, 5, 6])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
+    x = Conv1D({{choice([128, 256, 512])}}, {{choice([3, 4, 5])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D({{choice([64, 128, 256])}}, {{choice([3, 4, 5, 6])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
+    x = Conv1D({{choice([32, 64, 128, 256])}}, {{choice([3, 4, 5])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
     x = MaxPooling1D(2)(x)
     x = Flatten()(x)
-    x = Dense({{choice([64, 128, 256])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
+    x = Dense({{choice([128, 256, 512])}}, activation={{choice(['relu', 'sigmoid'])}})(x)
     preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
     model = Model(sequence_input, preds)
@@ -141,6 +141,7 @@ def model(x_train, y_train, x_test, y_test, embedding_matrix, V):
               batch_size={{choice([16, 32, 64])}},
               epochs=1,
               verbose=2,
+              shuffle=True,
               validation_data=(x_test, y_test))
     score, acc = model.evaluate(x_test, y_test, verbose=0)
     print('Test accuracy:', acc)
@@ -151,7 +152,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=10,
+                                          max_evals=20,
                                           trials=Trials(),
                                           rseed=13)
 

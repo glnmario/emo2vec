@@ -13,7 +13,7 @@ OUTPUT_MODEL = RESOURCES_PATH + 'cnn_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
 BATCH_SIZE = 32
 EMBEDDING_DIM = 300
-EPOCHS = 5
+EPOCHS = 2
 TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
@@ -100,14 +100,14 @@ print('Build model...')
 sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = Conv1D(filters=256, kernel_size=4, activation='relu')(embedded_sequences)
+x = Conv1D(filters=512, kernel_size=3, activation='relu')(embedded_sequences)
 x = MaxPooling1D(pool_size=2)(x)
-x = Conv1D(256, 6, activation='relu')(x)
+x = Conv1D(512, 4, activation='relu')(x)
 x = MaxPooling1D(2)(x)
 x = Conv1D(64, 4, activation='relu')(x)
 x = MaxPooling1D(2)(x)
 x = Flatten()(x)
-x = Dense(256, activation='relu')(x)
+x = Dense(512, activation='relu')(x)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
@@ -121,6 +121,7 @@ print('Train...')
 model.fit(x_train, y_train,
           batch_size=BATCH_SIZE,
           epochs=EPOCHS,
+          shuffle=True,
           validation_data=(x_test, y_test))
 
 score, acc = model.evaluate(x_test, y_test,

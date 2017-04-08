@@ -11,9 +11,9 @@ RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
 OUTPUT_MODEL = RESOURCES_PATH + 'cnn_lstm_vectors.txt'
 PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
-BATCH_SIZE = 64
+BATCH_SIZE = 16
 EMBEDDING_DIM = 300
-EPOCHS = 5
+EPOCHS = 2
 TRAIN_OVER_TEST = 0.7
 
 labels_index = {'anger': 0,
@@ -100,22 +100,22 @@ print('Build model...')
 sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = Conv1D(filters=32, kernel_size=8, padding='same', activation='relu')(embedded_sequences)
+x = Conv1D(filters=64, kernel_size=6, padding='same', activation='relu')(embedded_sequences)
 x = MaxPooling1D(pool_size=6)(x)
-x = LSTM(128, dropout=0.1, recurrent_dropout=0.2)(x)
+x = LSTM(128, dropout=0.15, recurrent_dropout=0.02)(x)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='categorical_crossentropy',
-              optimizer='adagrad',
+              optimizer='adam',
               metrics=['accuracy'])
 
 print(model.summary())
 
-print('Train...')
 model.fit(x_train, y_train,
           batch_size=BATCH_SIZE,
           epochs=EPOCHS,
+          shuffle=True,
           validation_data=(x_test, y_test))
 
 score, acc = model.evaluate(x_test, y_test,

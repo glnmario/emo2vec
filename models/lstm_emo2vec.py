@@ -96,20 +96,20 @@ print('Build model...')
 sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = LSTM(64, dropout=0.1, recurrent_dropout=0.06)(embedded_sequences)
+x = LSTM(64, dropout=0.7, recurrent_dropout=0.17)(embedded_sequences)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='categorical_crossentropy',
-              optimizer='adagrad',
+              optimizer='adam',
               metrics=['acc'])
 
 print(model.summary())
 
-print('Train...')
 model.fit(x_train, y_train,
           batch_size=BATCH_SIZE,
           epochs=EPOCHS,
+          shuffle=True,
           validation_data=(x_test, y_test))
 
 score, acc = model.evaluate(x_test, y_test,
@@ -118,7 +118,7 @@ score, acc = model.evaluate(x_test, y_test,
 print('\nTest score:', score)
 print('Test accuracy:', acc)
 
-print('Write word vectors to ', OUTPUT_MODEL)
+print('Write word vectors to', OUTPUT_MODEL)
 with open(OUTPUT_MODEL, 'w') as f:
     f.write(" ".join([str(V), str(EMBEDDING_DIM)]))
     f.write("\n")

@@ -134,6 +134,7 @@ def model(x_train, y_train, x_test, y_test, embedding_matrix, V):
               batch_size={{choice([32, 64, 128])}},
               epochs=1,
               verbose=2,
+              shuffle=True,
               validation_data=(x_test, y_test))
     score, acc = model.evaluate(x_test, y_test, verbose=0)
     print('Test accuracy:', acc)
@@ -144,7 +145,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=10,
+                                          max_evals=20,
                                           trials=Trials(),
                                           rseed=13)
 
