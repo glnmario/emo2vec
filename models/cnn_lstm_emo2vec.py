@@ -33,7 +33,7 @@ with open(PRETRAINED_MODEL, 'r') as f:
     next(f)  # skip header
     for line in f:
         values = line.split()
-        if len(values) != EMBEDDING_DIM+1:  # probably an error occured during tokenization
+        if len(values) != EMBEDDING_DIM+1:  # probably an error occurred during tokenization
             continue
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float32')
