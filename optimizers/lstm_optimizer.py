@@ -46,8 +46,6 @@ def data():
             texts.append(line_split[0].strip())
             emotion_labels.append(labels_index[line_split[1].strip()])
 
-    print('Found %s texts.' % len(texts))
-
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(texts)
     sequences = tokenizer.texts_to_sequences(texts)  # one sequence of tokens per text input
@@ -70,10 +68,6 @@ def data():
     x_test = data[num_train_samples:]
     y_test = emotion_labels[num_train_samples:]
 
-    print('Indexing word vectors.')
-
-    # load pre-trained word embeddings into an Embedding layer
-    # note that we set trainable = True so as to let the embeddings vary
     embeddings_index = {}
     with open(PRETRAINED_MODEL, 'r') as f:
         next(f)
@@ -85,9 +79,6 @@ def data():
             coefs = numpy.asarray(values[1:], dtype='float32')
             embeddings_index[word] = coefs
 
-    print('Found %s word vectors.' % len(embeddings_index))
-
-    print('Preparing embedding matrix.')
     embedding_matrix = numpy.zeros((V + 1, EMBEDDING_DIM))
     for word, i in word_to_index.items():
         embedding_vector = embeddings_index.get(word)
