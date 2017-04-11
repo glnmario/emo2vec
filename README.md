@@ -1,16 +1,16 @@
 # emo2vec
-Learning emotion-specific embeddings.
 
+#### Learning emotion-specific embeddings.
 
-#### Code
+The Hashtag Emotion Corpus is used to train three different `models`: 1d-CNN with pooling, LSTM, CNN+LSTM. These models are implemented with [Keras](https://keras.io/) and they try to predict an emotion label for each tweet in the corpus, thus learning *emotion-specific* word embeddings.
+The skip-gram model with negative sampling is used to pre-train word embeddings.
 
-- `skipgram_ns.py` is a [Keras](https://keras.io/) implementation of the skip-gram model
-- `cnn_emo2vec.py` is a 1D convolutional neural network with pooling used to learn emotion-specific embeddings
-- `lstm_emo2vec.py` is a LSTM recurrent neural network used to learn emotion-specific embeddings
-- `cnn_lstm_emo2vec.py` is the combination of CNN and LSTM
+Additionally, all models come with their [Hyperas](http://maxpumperla.github.io/hyperas/) `optimizers`, which perform hyperparameter optimization.
+
+Paraphernalia:
 - `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
 - `agreement.py` evaluates agreement between gold standard and otherwise obtained labels
-- `similarity.py` prints the 10 most similar word-vectors to a list of defined target words, according to four different models: skipgram with negative sampling, cnn-emo2vec, lstm-emo2vec, cnn_lstm-emo2vec
+- `similarity.py` prints the 10 most similar word-vectors to a list of defined target words, according to the learned models
 
 
 #### Resources
