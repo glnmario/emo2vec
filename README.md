@@ -2,10 +2,8 @@
 
 #### Learning emotion-specific embeddings.
 
-The Hashtag Emotion Corpus is used to train three different `models`: 1d-CNN with pooling, LSTM, CNN+LSTM. These models are implemented with [Keras](https://keras.io/) and they try to predict an emotion label for each tweet in the corpus, thus learning *emotion-specific* word embeddings.
+The Hashtag Emotion Corpus is used to train three different `models`: 1d-CNN with pooling, LSTM, CNN+LSTM. These models are implemented with [Keras](https://keras.io/) and they try to predict an emotion label for each tweet in the corpus, thus learning *emotion-specific* word embeddings. All models come with their [Hyperas](http://maxpumperla.github.io/hyperas/) `optimizers`, which perform hyperparameter optimization.
 The skip-gram model with negative sampling is used to pre-train word embeddings.
-
-Additionally, all models come with their [Hyperas](http://maxpumperla.github.io/hyperas/) `optimizers`, which perform hyperparameter optimization.
 
 Paraphernalia:
 - `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
