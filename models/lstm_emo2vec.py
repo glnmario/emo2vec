@@ -9,8 +9,8 @@ np.random.seed(13)
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-OUTPUT_MODEL = RESOURCES_PATH + 'lstm_vectors.txt'
-PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
+OUTPUT_MODEL = RESOURCES_PATH + 'lstm_300d.txt'
+PRETRAINED_MODEL = RESOURCES_PATH + 'SGNS-300d.txt'
 BATCH_SIZE = 32
 EMBEDDING_DIM = 300
 EPOCHS = 2
@@ -96,7 +96,7 @@ print('Build model...')
 sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = LSTM(64, dropout=0.7, recurrent_dropout=0.17)(embedded_sequences)
+x = LSTM(64, dropout=0.07, recurrent_dropout=0.17)(embedded_sequences)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)

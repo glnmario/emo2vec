@@ -3,10 +3,12 @@ from numpy import loadtxt
 
 RESOURCES_PATH = 'resources/'
 TARGET_WORDS_PATH = RESOURCES_PATH + 'target_words.txt'
-MODEL_PATHS = (RESOURCES_PATH + p for p in ['vectors.txt',
-                                            'cnn_vectors.txt',
-                                            'lstm_vectors.txt',
-                                            'cnn_lstm_vectors.txt'])
+MODEL_PATHS = (RESOURCES_PATH + p for p in ['SGNS-300d.txt',
+                                            'cnn_300d.txt',
+                                            'lstm_300d.txt',
+                                            'cnn_lstm_300d.txt',
+                                            'lstm_sent_300d.txt',
+                                            'antsyn_lstm_100d.txt'])
 
 with open(TARGET_WORDS_PATH, 'r') as f:
     target_words = f.read().split('\n')

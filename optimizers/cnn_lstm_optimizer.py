@@ -20,7 +20,7 @@ def data():
 
     RESOURCES_PATH = 'resources/'
     CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-    PRETRAINED_MODEL = RESOURCES_PATH + 'vectors.txt'
+    PRETRAINED_MODEL = RESOURCES_PATH + 'SGNS-300d.txt'
     EMBEDDING_DIM = 300
     MAX_SEQUENCE_LENGTH = 36
     TRAIN_OVER_TEST = 0.7

@@ -1,5 +1,7 @@
 from __future__ import print_function
-from keras.layers import Conv1D, Dense, Embedding, Input, LSTM, MaxPooling1D
+
+from gensim.models import KeyedVectors
+from keras.layers import Dense, Embedding, Input, LSTM
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
@@ -9,10 +11,10 @@ np.random.seed(13)
 
 RESOURCES_PATH = 'resources/'
 CORPUS_PATH = RESOURCES_PATH + 'twitter_corpus.txt'
-OUTPUT_MODEL = RESOURCES_PATH + 'cnn_lstm_300d.txt'
-PRETRAINED_MODEL = RESOURCES_PATH + 'SGNS-300d.txt'
-BATCH_SIZE = 16
-EMBEDDING_DIM = 300
+OUTPUT_MODEL = RESOURCES_PATH + 'antsyn_lstm_100d.txt'
+PRETRAINED_MODEL = RESOURCES_PATH + 'wiki_en_dLCE_100d_minFreq_100.bin'  #  Wikipedia corpus, 100dim, min-count=100
+BATCH_SIZE = 32
+EMBEDDING_DIM = 100
 EPOCHS = 2
 TRAIN_OVER_TEST = 0.7
 
@@ -63,26 +65,16 @@ y_train = emotion_labels[:num_train_samples]
 x_test = data[num_train_samples:]
 y_test = emotion_labels[num_train_samples:]
 
-print('Index word vectors...')
-embeddings_index = {}
-with open(PRETRAINED_MODEL, 'r') as f:
-    next(f)  # skip header
-    for line in f:
-        values = line.split()
-        if len(values) != EMBEDDING_DIM+1:  # probably an error occurred during tokenization
-            continue
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float32')
-        embeddings_index[word] = coefs
-print('Found %s word vectors.' % len(embeddings_index))
+# Load pre-trained embeddings with lexical contrast information
+w2v = KeyedVectors.load_word2vec_format(PRETRAINED_MODEL, binary=True)
 
 print('Prepare embedding matrix...')
 embedding_matrix = np.zeros((V+1, EMBEDDING_DIM))
 for word, i in word_to_index.items():
-    embedding_vector = embeddings_index.get(word)
-    if embedding_vector is not None:
-        # words not found in embedding index will be all-zeros.
-        embedding_matrix[i-1] = embedding_vector
+    try:
+        embedding_matrix[i-1] = w2v[word]
+    except KeyError:
+        continue  # words not found in embedding index will be all-zeros.
 
 # load pre-trained word embeddings into an Embedding layer
 # note that we set trainable = True so as to let the embeddings vary
@@ -96,15 +88,13 @@ print('Build model...')
 sequence_input = Input(shape=(max_seq_len,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 
-x = Conv1D(filters=64, kernel_size=6, padding='same', activation='relu')(embedded_sequences)
-x = MaxPooling1D(pool_size=6)(x)
-x = LSTM(128, dropout=0.15, recurrent_dropout=0.02)(x)
+x = LSTM(128, dropout=0.19, recurrent_dropout=0.19)(embedded_sequences)
 preds = Dense(NUM_EMOTIONS, activation='softmax')(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='categorical_crossentropy',
               optimizer='adam',
-              metrics=['accuracy'])
+              metrics=['acc'])
 
 print(model.summary())
 
@@ -117,15 +107,15 @@ model.fit(x_train, y_train,
 score, acc = model.evaluate(x_test, y_test,
                             batch_size=BATCH_SIZE)
 
-print('Test score:', score)
+print('\nTest score:', score)
 print('Test accuracy:', acc)
 
-print('Write word vectors to ', OUTPUT_MODEL)
+print('Write word vectors to', OUTPUT_MODEL)
 with open(OUTPUT_MODEL, 'w') as f:
     f.write(" ".join([str(V), str(EMBEDDING_DIM)]))
     f.write("\n")
 
-    vectors = model.get_weights()[0]  # shape: V x EMBEDDING_DIM  (e.g. V x 300)
+    vectors = model.get_weights()[0]  # shape: V x EMBEDDING_DIM
 
     for word, i in word_to_index.items():
         f.write(word)
