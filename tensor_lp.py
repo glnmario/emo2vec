@@ -126,11 +126,12 @@ with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') a
         _embeddings.append(coefs)
         word2idx[word] = i
         i += 1
-print('Indexing done')
+print('Found', i-1, 'word vectors.')
 n = i
 
 embeddings = np.asarray(_embeddings, dtype='float16')
 
+print('Build distance matrix.')
 t = np.empty((n, n, NDIMS), dtype='float16')
 for j in word2idx.values():
     for k in word2idx.values():
@@ -144,11 +145,10 @@ with open('resources/data/emolex.txt', 'r') as f:
     for l in f:
         lemma, emotion, has_emotion = read_emo_lemma(l)
         if emotion == 'anger':  # i.e. if lemma not in lexicon.keys()
-            # lexicon.append(np.empty(shape=(NUM_EMOTIONS,), dtype='float16'))
             lexeme2index[lemma] = i
         if emotion in ['positive', 'negative', 'anticipation', 'trust']:
             continue
-        lexicon[i][emo_idx] = has_emotion
+        y_l[i][emo_idx] = has_emotion
         if emo_idx < NUM_EMOTIONS - 1:
             emo_idx += 1
         else:
@@ -156,8 +156,8 @@ with open('resources/data/emolex.txt', 'r') as f:
             emo_idx = 0
             i += 1
 
-# y_l = np.asarray(DataFrame(lexicon, dtype='float16').T.fillna(0), dtype='float16')
-y = np.random.random((len(word2idx), NUM_EMOTIONS))
+print('Initialize label distribution matrix.')
+y = np.random.random((n, NUM_EMOTIONS))
 
 labeled_indices = []
 for word, idx in lexeme2index.items():
@@ -180,6 +180,7 @@ T_ul = t[u][:, l]
 Y_l = y[l]
 
 
+print('Tensorflow.')
 sess = tf.Session()
 
 with tf.variable_scope("model", reuse=False):
@@ -187,13 +188,13 @@ with tf.variable_scope("model", reuse=False):
 
 sess.run(tf.global_variables_initializer())
 
-rng = 10
+rng = 20
 for i in range(rng):
-    h, _, y, sigmas, eps = sess.run([model.entropy, model.train_op, model.y, model.sigmas, model.epsilon],
+    h, _, Y, sigmas, eps = sess.run([model.entropy, model.train_op, model.y, model.sigmas, model.epsilon],
                                     {model.t_uu: T_uu, model.t_ul: T_ul, model.y_l: Y_l})
     print(h, sep='\n\n')
 
     if i == rng-1:
-        print(normalize(y, norm='l1', axis=1, copy=False))
+        print(normalize(Y, norm='l1', axis=1, copy=False))
 
 sess.close()
