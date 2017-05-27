@@ -111,11 +111,11 @@ STOP = 1000
 
 _embeddings = []
 word2idx = {}
-i = 0
+line_idx = 0
 with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') as f:
     next(f)  # skip header
     for line in f:
-        if i >= STOP:
+        if line_idx >= STOP:
             break
         values = line.split()
         if len(values) != NDIMS + 1:
@@ -124,10 +124,10 @@ with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') a
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float16')
         _embeddings.append(coefs)
-        word2idx[word] = i
-        i += 1
-print('Found', i-1, 'word vectors.')
-n = i
+        word2idx[word] = line_idx
+        line_idx += 1
+print('Found', line_idx-1, 'word vectors.')
+n = line_idx
 embeddings = np.asarray(_embeddings, dtype='float16')
 
 y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float16')
