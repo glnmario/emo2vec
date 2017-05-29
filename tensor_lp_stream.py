@@ -107,7 +107,7 @@ def read_emo_lemma(aline):
 
 NUM_EMOTIONS = 6
 NDIMS = 300
-STOP = 1000
+STOP = 40000
 
 _embeddings = []
 word2idx = {}
@@ -172,7 +172,7 @@ Y_l = y[l]
 print('Build distance matrix.')
 part_size = 200
 n_iter= n // part_size
-last_part = n - (n_iter-1)*part_size
+last_part = n - (n_iter)*part_size
 
 sess = tf.Session()
 
