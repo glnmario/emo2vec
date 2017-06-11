@@ -183,7 +183,7 @@ Y_l = y[l]
 print('Tensorflow.')
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.4
-session = tf.Session(config=config)
+sess = tf.Session(config=config)
 
 with tf.variable_scope("model", reuse=False):
     model = Model(len(l), len(u), NUM_EMOTIONS)
