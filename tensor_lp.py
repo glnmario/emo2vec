@@ -181,7 +181,9 @@ l_batch_size = int(tot_batch_size * (5869 / n))
 u_batch_size = tot_batch_size - l_batch_size
 
 print('Tensorflow.')
-sess = tf.Session()
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.5
+session = tf.Session(config=config)
 
 with tf.variable_scope("model", reuse=None) as scope:
     model = Model(l_batch_size, u_batch_size, NDIMS, NUM_EMOTIONS)
