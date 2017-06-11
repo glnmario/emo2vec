@@ -7,7 +7,7 @@ from math import acos, pi
 
 np.random.seed(13)
 
-NUM_EMOTIONS = 8
+NUM_EMOTIONS = 6
 NDIMS = 300
 
 
@@ -35,6 +35,20 @@ def to_cosine_dist(similarity):
     return acos(similarity) / pi
 
 
+def clip_to_range_0_1(v):
+    v[v <= 0.] = 1e-15
+    v[v > 1.] = 1.0
+
+
+def inv(m):
+    a, b = m.shape
+    if a != b:
+        raise ValueError("Only square matrices are invertible.")
+
+    id = np.eye(a, a)
+    return np.linalg.lstsq(m, id)[0]
+
+
 def build_Y(lexicon_path, word2index_T):
     """
     :param lexicon_path: emotion lexicon
@@ -45,14 +59,14 @@ def build_Y(lexicon_path, word2index_T):
     lexeme2index = dict()
 
     with open(lexicon_path, 'r') as f:
-        emo_idx = 0  # anger: 0, anticipation: 1, disgust: 2, fear: 3, joy: 4, sadness: 5, surprise: 6, trust: 7
+        emo_idx = 0  # anger: 0, disgust: 1, fear: 2, joy: 3, sadness: 4, surprise: 6
         i = 0
         for l in f:
             lemma, emotion, has_emotion = read_emo_lemma(l)
             if emotion == 'anger':  # i.e. if lemma not in lexicon.keys()
                 lexicon[i] = np.empty(shape=(NUM_EMOTIONS,))
                 lexeme2index[lemma] = i
-            if emotion == 'positive' or emotion == 'negative':
+            if emotion in ['positive', 'negative', 'anticipation', 'trust']:
                 continue
             lexicon[i][emo_idx] = has_emotion
             if emo_idx < NUM_EMOTIONS - 1:
@@ -62,8 +76,9 @@ def build_Y(lexicon_path, word2index_T):
                 emo_idx = 0
                 i += 1
 
-    y_l = np.asarray(DataFrame(lexicon, dtype='float16').T.fillna(0), dtype='float16')
-    y = np.random.random((len(word2index_T), 8))
+    y_l = np.asarray(
+        DataFrame(lexicon, dtype='float16').T.fillna(0), dtype='float16')
+    y = np.random.random((len(word2index_T), NUM_EMOTIONS))
 
     labeled_indices = []
     for word, idx in lexeme2index.items():
@@ -75,7 +90,8 @@ def build_Y(lexicon_path, word2index_T):
         except KeyError:
             continue
 
-    y = normalize(y, axis=1, norm='l1')  # turn multi-labels into prob distribution
+    # turn multi-labels into prob distribution
+    y = normalize(y, axis=1, norm='l1', copy=False)
 
     return y, labeled_indices
 
@@ -85,12 +101,14 @@ def build_T(model_path, sigma):
     :param model_path: the path of the final model
     :return: (T matrix, word-to-index dictionary for T)
     """
-    emo2vec = KeyedVectors.load_word2vec_format(model_path, binary=False)  # .init_sims(replace=True)
+    emo2vec = KeyedVectors.load_word2vec_format(model_path, binary=False)
     idx2word = dict(enumerate(emo2vec.index2word))
-    n = len(idx2word)
+    n = 100  # len(idx2word)
+    print(n, 'word vectors.')
 
     # invert idx -> word mapping
     word2idx = {w: i for i, w in {i: idx2word[i] for i in np.arange(n)}.items()}
+    # word2idx = {w: i for i, w in idx2word.items()}
 
     t = np.empty((n, n), dtype='float16')
 
@@ -100,8 +118,8 @@ def build_T(model_path, sigma):
 
     t /= sigma ** 2
     t = np.exp(-t)
-    t = normalize(t, axis=0, norm='l1')
-    t = normalize(t, axis=1, norm='l1')
+    t = normalize(t, axis=0, norm='l1', copy=False)
+    t = normalize(t, axis=1, norm='l1', copy=False)
 
     return t, word2idx
 
@@ -112,7 +130,8 @@ def labelprop(model, lexicon, sigma):
     print('Build Y...')
     Y, L = build_Y(lexicon, word2idx_T)
 
-    U = np.setdiff1d(np.asarray(list(word2idx_T.values()), dtype='int32'), L)  # unlabeled nodes indices
+    # unlabeled nodes indices
+    U = np.setdiff1d(np.asarray(list(word2idx_T.values()), dtype='int32'), L)
 
     T_uu = T[U][:, U]
     T_ul = T[U][:, L]
@@ -120,14 +139,20 @@ def labelprop(model, lexicon, sigma):
     n, m = T_uu.shape
     I = np.eye(n, m)
 
-    Y[U] = np.linalg.inv(I - T_uu) @ T_ul @ Y[L]
-    # Y[U] = normalize(Y[U], axis=1, norm='l1')
+    clip_to_range_0_1(Y)
+    Y[U] = inv(I - T_uu) @ T_ul @ Y[L]
+    clip_to_range_0_1(Y)
 
-    Y[Y == 0.] = 1e-15
-    return - np.sum(Y * np.log(Y))
-
-
-for sigma in np.arange(start=0.2, stop=2.2, step=0.2):
-    print(sigma, labelprop('resources/emotion_specific/bilstm_300d.txt', 'resources/data/emolex.txt', sigma))
+    return normalize(Y, axis=1, norm='l1'), word2idx_T, - np.sum(Y * np.log(Y))
 
 
+# for sigma in np.arange(start=0.1, stop=0.2, step=0.2):
+
+sigma = 0.2
+
+y, w2i, h = labelprop('resources/emotion_specific/bilstm_300d.txt',
+                      'resources/data/emolex.txt', sigma)
+
+with open('y_lp_1sigma.txt', 'w', encoding='utf-8') as f:
+    for w, i in w2i.items():
+        print(w, str(y[i]).replace('\n   ', '   ').replace('[', '').replace(']', '').replace('  ', ''), file=f)

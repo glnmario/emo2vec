@@ -3,9 +3,11 @@ import tensorflow as tf
 from pandas import DataFrame
 from sklearn.preprocessing import normalize
 from math import floor, pi
-
+import sys
 np.random.seed(13)
 
+if len(sys.argv) != 4:
+    sys.exit('3 args required: batch size, # batches, # epochs')
 
 class Model:
     def __init__(self, n_labeled, n_unlabeled, input_dims, n_classes):
@@ -14,8 +16,9 @@ class Model:
         self._y_l = y_l = tf.placeholder(tf.float32, shape=[n_labeled, n_classes])
 
         sigmas_init = tf.truncated_normal(shape=[input_dims,], mean=0.5, stddev=0.2, dtype=tf.float32)
+        # sigmas_init = tf.constant_initializer(1, dtype=tf.float32)
         self._sigmas = sigmas = tf.get_variable("sigmas", dtype=tf.float32, initializer=sigmas_init)
-        sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ')
+        sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
 
         tuu = tf.exp(- tf.reduce_sum(t_uu / (sigmas ** 2), axis=2))
         tul = tf.exp(- tf.reduce_sum(t_ul / (sigmas ** 2), axis=2))
@@ -29,12 +32,12 @@ class Model:
         u2 = tf.get_variable("uniform2",
                              dtype=tf.float32,
                              shape=[n_unlabeled, n_labeled],
-                             trainable=False,
                              initializer=uniform_init)
 
         self._epsilon = epsilon = tf.get_variable("epsilon",
                                                   dtype=tf.float32,
                                                   shape=[],
+                                                  trainable=True,
                                                   initializer=tf.constant_initializer(0.5e-4, dtype=tf.float32))
         epsilon = tf.Print(epsilon, [epsilon], 'Epsilon: ')
         tuu = epsilon * u1 + (1 - epsilon) * tuu
@@ -59,7 +62,6 @@ class Model:
 
         self._y = y = tf.concat([y_u, y_l], 0)
         y = tf.clip_by_value(y, 1e-15, float("inf"))
-        y = tf.Print(y, [y], 'y: ')
 
         self._entropy = entropy = - tf.reduce_sum(y * tf.log(y))
         self._train_op = tf.train.AdamOptimizer(0.01).minimize(entropy)
@@ -131,6 +133,7 @@ n = line_idx
 embeddings = np.asarray(_embeddings, dtype='float16')
 
 
+
 print('Build distance matrix.')
 y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float16')
 
@@ -171,9 +174,9 @@ y = normalize(y, axis=1, norm='l1', copy=False)
 l = labeled_indices
 u = np.setdiff1d(np.asarray(list(word2idx.values()), dtype='int32'), l)
 
-
-n_batches = 1000
-tot_batch_size = 8000
+tot_batch_size = int(sys.argv[1])
+n_batches = int(sys.argv[2])
+epochs = int(sys.argv[3])
 l_batch_size = int(tot_batch_size * (5869 / n))
 u_batch_size = tot_batch_size - l_batch_size
 
@@ -189,28 +192,28 @@ for batch in range(n_batches):
     rand_u = enumerate(np.random.choice(u, size=u_batch_size, replace=False))
     rand_l = enumerate(np.random.choice(l, size=l_batch_size, replace=False))
 
-    l_idx = [j for (i, j) in rand_l]
-    yl_batch = np.asarray(y[l_idx])
+    yl_batch = np.asarray(y[ [j for (i, j) in rand_l] ])
     tuu_batch = np.empty((u_batch_size, u_batch_size, NDIMS), dtype='float16')
     tul_batch = np.empty((u_batch_size, l_batch_size, NDIMS), dtype='float16')
 
     for (j, j_) in rand_u:
         for (k, k_) in rand_u:
             tuu_batch[j, k] = (embeddings[j_] * embeddings[k_]) ** 2
-        for (m, m_) in rand_l:
-            tul_batch[j, m] = (embeddings[j_] * embeddings[m_]) ** 2
+        for (k, k_) in rand_l:
+            tul_batch[j, k] = (embeddings[j_] * embeddings[k_]) ** 2
 
-    epochs = 5
     for epoch in range(epochs):
         h, _, Y, sigmas, epsilon = sess.run([model.entropy, model.train_op, model.y, model.sigmas, model.epsilon],
                                                  {model.t_uu: tuu_batch, model.t_ul: tul_batch, model.y_l: yl_batch})
 
         print(h)
         if batch == n_batches - 1 and epoch == epochs - 1:
-            with open('output_sigmas.txt', 'w') as f:
+            with open('log_sigmas.txt', 'w') as f:
                 print('Entropy:', h, '\n', file=f)
-                print('Sigmas:\n', sigmas, '\n', file=f)
                 print('Epsilon:', epsilon, '\n', file=f)
-                print('Y:\n', normalize(Y, axis=1, norm='l1', copy=False) , '\n\n', file=f)
+                print('Sigmas:', file=f)
+                print([sigma for sigma in sigmas], file=f)
+
+            np.savetxt('y_sigmas.txt', normalize(Y, axis=1, norm='l1', copy=False))
 
 sess.close()

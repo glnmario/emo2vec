@@ -3,8 +3,17 @@ import tensorflow as tf
 from pandas import DataFrame
 from sklearn.preprocessing import normalize
 from math import acos, pi
+import sys
 np.random.seed(13)
 
+if len(sys.argv) == 3:
+    epochs = int(sys.argv[1])
+    STOP = int(sys.argv[2])
+elif len(sys.argv) == 2:
+    epochs = int(sys.argv[1])
+    STOP = 50000  # i.e. no number of words limit
+else:
+    sys.exit('Run as: tensor_lp_1sigma.py epochs [# words limit]')
 
 class Model:
     def __init__(self, n_labeled, n_unlabeled, n_classes):
@@ -12,30 +21,10 @@ class Model:
         self._t_ul = t_ul = tf.placeholder(tf.float32, shape=[n_unlabeled, n_labeled])
         self._y_l = y_l = tf.placeholder(tf.float32, shape=[n_labeled, n_classes])
 
-
         sigmas_init = tf.random_uniform(shape=[], minval=0.1, maxval=0.9)
         self._sigma = sigma = tf.get_variable("sigma", dtype=tf.float32, initializer=sigmas_init) ** 2
         tuu = tf.exp(- (t_uu ** 2) / sigma)
         tul = tf.exp(- (t_ul ** 2) / sigma)
-
-        # uniform_init = tf.constant_initializer(1 / n_unlabeled+n_labeled, dtype=tf.float32)
-        # u1 = tf.get_variable("uniform1",
-        #                      dtype=tf.float32,
-        #                      shape=[n_unlabeled, n_unlabeled],
-        #                      trainable=False,
-        #                      initializer=uniform_init)
-        # u2 = tf.get_variable("uniform2",
-        #                      dtype=tf.float32,
-        #                      shape=[n_unlabeled, n_labeled],
-        #                      trainable=False,
-        #                      initializer=uniform_init)
-
-        # self._epsilon = epsilon = tf.get_variable("epsilon",
-        #                                           dtype=tf.float32,
-        #                                           shape=[],
-        #                                           initializer=tf.constant_initializer(0.5e-4))
-        # tuu = epsilon * u1 + (1 - epsilon) * tuu
-        # tul = epsilon * u2 + (1 - epsilon) * tul
 
         # column normalization
         tuu_col_norms = tf.norm(tuu, ord=1, axis=0)
@@ -90,10 +79,6 @@ class Model:
     def sigma(self):
         return self._sigma
 
-    # @property
-    # def epsilon(self):
-    #     return self._epsilon
-
 
 def read_emo_lemma(aline):
     """
@@ -123,7 +108,6 @@ def cosine_dist(u, v):
 
 NUM_EMOTIONS = 6
 NDIMS = 300
-STOP = 1000
 
 _embeddings = []
 word2idx = {}
@@ -204,16 +188,16 @@ with tf.variable_scope("model", reuse=False):
 
 sess.run(tf.global_variables_initializer())
 
-epochs = 50
 for i in range(epochs):
     h, _, Y, sigma = sess.run([model.entropy, model.train_op, model.y, model.sigma],
                               {model.t_uu: T_uu, model.t_ul: T_ul, model.y_l: Y_l})
     print(h, sep='\n\n')
 
     if i == epochs - 1:
-        with open('output_1sigma.txt', 'w') as f:
-            print('Entropy:', h, '\n\n', file=f)
-            print('Sigma:', sigma, '\n\n', file=f)
-            print(normalize(Y, norm='l1', axis=1, copy=False), file=f)
+        with open('log_1sigma.txt', 'w') as f:
+            print('Entropy:', h, '\n', file=f)
+            print('Sigma:', sigma, '\n', file=f)
+
+        np.savetxt('y_1sigma.txt', normalize(Y, axis=1, norm='l1', copy=False))
 
 sess.close()
