@@ -133,15 +133,23 @@ def labelprop(model, lexicon, sigma):
     # unlabeled nodes indices
     U = np.setdiff1d(np.asarray(list(word2idx_T.values()), dtype='int32'), L)
 
-    T_uu = T[U][:, U]
-    T_ul = T[U][:, L]
+    new_order = np.append(U, L)
+    T[:, :] = T[list(new_order)][:, list(new_order)]
+    Y[:] = Y[new_order]
+
+    T_uu = T[:len(U), :len(U)]
+    T_ul = T[:len(U), len(U):]
+    Y_l = Y[len(U):]
 
     n, m = T_uu.shape
     I = np.eye(n, m)
 
     clip_to_range_0_1(Y)
-    Y[U] = inv(I - T_uu) @ T_ul @ Y[L]
+    Y[U] = inv(I - T_uu) @ T_ul @ Y_l
     clip_to_range_0_1(Y)
+
+    i2i = {old: new for (new, old) in enumerate(new_order)}
+    word2idx_T = {w: i2i[old] for w, old in word2idx_T.items()}
 
     return normalize(Y, axis=1, norm='l1'), word2idx_T, - np.sum(Y * np.log(Y))
 
@@ -155,4 +163,5 @@ y, w2i, h = labelprop('resources/emotion_specific/bilstm_300d.txt',
 
 with open('y_lp_1sigma.txt', 'w', encoding='utf-8') as f:
     for w, i in w2i.items():
+        # i =
         print(w, str(y[i]).replace('\n   ', '   ').replace('[', '').replace(']', '').replace('  ', ''), file=f)

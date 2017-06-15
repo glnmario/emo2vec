@@ -176,11 +176,9 @@ labeled_indices.sort()
 l = labeled_indices
 u = np.setdiff1d(np.asarray(list(word2idx.values()), dtype='int32'), l)
 
-i2i = dict(enumerate(u))
-i2i.update(enumerate(l, start=len(u)))
-
-t[:, :] = t[list(i2i.values())][:, list(i2i.values())]
-y[:] = y[list(i2i.values())]
+new_order = np.append(u, l)
+t[:, :] = t[list(new_order)][:, list(new_order)]
+y[:] = y[new_order]
 
 T_uu = t[:len(u), :len(u)]
 T_ul = t[:len(u), len(u):]
