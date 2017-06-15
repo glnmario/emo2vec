@@ -114,21 +114,36 @@ word2idx = {}
 line_idx = 0
 with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') as f:
     next(f)  # skip header
+
     for line in f:
         if line_idx >= STOP:
             break
+
         values = line.split()
+
+        # probably an error occurred during tokenization
         if len(values) != NDIMS + 1:
-            # probably an error occurred durtokenization
             continue
+
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float32')
-        _embeddings.append(coefs)
-        word2idx[word] = line_idx
-        line_idx += 1
+
+        # skip all-zeros vectors
+        if not coefs.any():
+            continue
+
+        # only one vector for each word
+        try:
+            word2idx[word]
+        except:
+            _embeddings.append(coefs)
+            word2idx[word] = line_idx
+            line_idx += 1
 
 n = line_idx
 print('Found', n, 'word vectors.')
+print(len(word2idx))
+
 embeddings = np.asarray(_embeddings, dtype='float32')
 
 print('Build distance matrix.')
@@ -160,6 +175,7 @@ print('Initialize label distribution matrix.')
 y = np.random.random((n, NUM_EMOTIONS))
 
 labeled_indices = []
+U = 0
 for word, idx in lexeme2index.items():
     try:
         # if word in corpus
@@ -167,6 +183,7 @@ for word, idx in lexeme2index.items():
         y[idx_T] = y_l[idx]  # set values of labeled word
         labeled_indices.append(idx_T)
     except KeyError:
+        U +=1
         continue
 
 # turn multi-labels into prob distribution
