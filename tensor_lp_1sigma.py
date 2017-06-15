@@ -172,12 +172,19 @@ for word, idx in lexeme2index.items():
 # turn multi-labels into prob distribution
 y = normalize(y, axis=1, norm='l1', copy=False)
 
+labeled_indices.sort()
 l = labeled_indices
 u = np.setdiff1d(np.asarray(list(word2idx.values()), dtype='int32'), l)
 
-T_uu = t[u][:, u]
-T_ul = t[u][:, l]
-Y_l = y[l]
+i2i = dict(enumerate(u))
+i2i.update(enumerate(l, start=len(u)))
+
+t[:, :] = t[list(i2i.values())][:, list(i2i.values())]
+y[:] = y[list(i2i.values())]
+
+T_uu = t[:len(u), :len(u)]
+T_ul = t[:len(u), len(u):]
+Y_l = y[len(u):]
 
 
 print('Tensorflow.')
