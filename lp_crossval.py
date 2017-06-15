@@ -181,16 +181,20 @@ def labelprop(model, lexicon_path, sigma):
         Y, L, heldout, y_test, idx_translator = build_Y(lexicon, lemma2index, word2idx_T, p)
 
         U = np.setdiff1d(np.asarray(list(word2idx_T.values()), dtype='int32'), L)  # unlabeled nodes indices
+        new_order = np.append(U, L)
+        T[:, :] = T[list(new_order)][:, list(new_order)]
+        Y[:] = Y[new_order]
 
-        T_uu = T[U][:, U]
-        T_ul = T[U][:, L]
+        T_uu = T[:len(U), :len(U)]
+        T_ul = T[:len(U), len(U):]
+        Y_l = Y[len(U):]
+        Y_u = Y[:len(U)]
 
         n, m = T_uu.shape
         I = np.eye(n, m)
 
         clip_to_range_0_1(Y)
-
-        Y[U] = inv(I - T_uu) @ T_ul @ Y[L]
+        Y_l = inv(I - T_uu) @ T_ul @ Y[L]
 
         clip_to_range_0_1(Y)
         Y = normalize(Y, axis=1, norm='l1', copy=False)

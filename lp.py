@@ -140,12 +140,13 @@ def labelprop(model, lexicon, sigma):
     T_uu = T[:len(U), :len(U)]
     T_ul = T[:len(U), len(U):]
     Y_l = Y[len(U):]
+    Y_u = Y[:len(U)]
 
     n, m = T_uu.shape
     I = np.eye(n, m)
 
     clip_to_range_0_1(Y)
-    Y[U] = inv(I - T_uu) @ T_ul @ Y_l
+    Y_u = inv(I - T_uu) @ T_ul @ Y_l
     clip_to_range_0_1(Y)
 
     i2i = {old: new for (new, old) in enumerate(new_order)}
