@@ -7,7 +7,7 @@ import sys
 np.random.seed(13)
 
 if len(sys.argv) != 4:
-    sys.exit('3 args required: batch size, # batches, # epochs')
+    sys.exit('Usage: batch_size, num_batches, num_epochs')
 
 class Model:
     def __init__(self, n_labeled, n_unlabeled, input_dims, n_classes):
@@ -15,13 +15,22 @@ class Model:
         self._t_ul = t_ul = tf.placeholder(tf.float32, shape=[n_unlabeled, n_labeled, input_dims])
         self._y_l = y_l = tf.placeholder(tf.float32, shape=[n_labeled, n_classes])
 
-        sigmas_init = tf.truncated_normal(shape=[input_dims,], mean=0.5, stddev=0.2, dtype=tf.float32)
-        # sigmas_init = tf.constant_initializer(1, dtype=tf.float32)
+        # sigmas_init = tf.truncated_normal(shape=[input_dims,], mean=1, stddev=0.4, dtype=tf.float32)
+        sigmas_init = tf.random_uniform(shape=[input_dims,], minval=1000, maxval=5000)
         self._sigmas = sigmas = tf.get_variable("sigmas", dtype=tf.float32, initializer=sigmas_init)
-        sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
+        # sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
 
-        tuu = tf.exp(- tf.reduce_sum(t_uu / (sigmas ** 2), axis=2))
-        tul = tf.exp(- tf.reduce_sum(t_ul / (sigmas ** 2), axis=2))
+        # tuu = tf.acos(tf.reduce_sum(t_uu / sigmas, axis=2)) / pi
+        # tul = tf.acos(tf.reduce_sum(t_ul / sigmas, axis=2)) / pi
+
+        tuu = tf.reduce_sum((t_uu * sigmas)**2, axis=2)
+        tul = tf.reduce_sum((t_ul * sigmas)**2, axis=2)
+
+        tuu = tf.exp(- tuu)
+        tul = tf.exp(- tul)
+
+        tuu = tf.Print(tuu, [tuu], 'tuu: ', summarize=30)
+        tul = tf.Print(tul, [tul], 'tul: ', summarize=30)
 
         uniform_init = tf.constant_initializer(1 / n_unlabeled+n_labeled, dtype=tf.float32)
         u1 = tf.get_variable("uniform1",
@@ -56,15 +65,15 @@ class Model:
         tul /= tf.reshape(tul_row_norms, [n_unlabeled, 1])
 
         I = tf.eye(n_unlabeled, dtype=tf.float32)
-        inv = tf.matrix_solve_ls((I - tuu), I, l2_regularizer=1)
+        inv = tf.matrix_solve_ls((I - tuu), I, l2_regularizer=0.01)
 
         y_u = tf.matmul(tf.matmul(inv, tul), y_l)
 
-        self._y = y = tf.concat([y_u, y_l], 0)
-        y = tf.clip_by_value(y, 1e-15, float("inf"))
+        y = tf.concat([y_u, y_l], 0)
+        self._y = y = tf.clip_by_value(y, 1e-15, float("inf"))
 
         self._entropy = entropy = - tf.reduce_sum(y * tf.log(y))
-        self._train_op = tf.train.AdamOptimizer(0.01).minimize(entropy)
+        self._train_op = tf.train.AdamOptimizer(0.1).minimize(entropy)
 
 
     @property
@@ -118,24 +127,38 @@ word2idx = {}
 line_idx = 0
 with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') as f:
     next(f)  # skip header
+
     for line in f:
         values = line.split()
-        if len(values) != NDIMS + 1:
-            # probably an error occurred durtokenization
-            continue
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float16')
-        _embeddings.append(coefs)
-        word2idx[word] = line_idx
-        line_idx += 1
-print('Found', line_idx-1, 'word vectors.')
-n = line_idx
-embeddings = np.asarray(_embeddings, dtype='float16')
 
+        # probably an error occurred during tokenization
+        if len(values) != NDIMS + 1:
+            continue
+
+        word = values[0]
+        coefs = np.asarray(values[1:], dtype='float32')
+
+        # skip all-zeros vectors
+        if not coefs.any():
+            continue
+
+        # only one vector for each word
+        try:
+            word2idx[word]
+        except:
+            _embeddings.append(coefs)
+            word2idx[word] = line_idx
+            line_idx += 1
+
+n = line_idx
+print('Found', n, 'word vectors.')
+
+embeddings = np.asarray(_embeddings, dtype='float32')
+embeddings = normalize(embeddings, axis=1, norm='l1', copy=False)
 
 
 print('Build distance matrix.')
-y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float16')
+y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float32')
 
 lexeme2index = dict()
 with open('resources/data/emolex.txt', 'r') as f:
@@ -191,18 +214,19 @@ with tf.variable_scope("model", reuse=None) as scope:
 sess.run(tf.global_variables_initializer())
 
 for batch in range(n_batches):
-    rand_u = enumerate(np.random.choice(u, size=u_batch_size, replace=False))
-    rand_l = enumerate(np.random.choice(l, size=l_batch_size, replace=False))
+    print('Batch', batch)
+    rand_u = np.random.choice(u, size=u_batch_size, replace=False)
+    rand_l = np.random.choice(l, size=l_batch_size, replace=False)
 
-    yl_batch = np.asarray(y[ [j for (i, j) in rand_l] ])
-    tuu_batch = np.empty((u_batch_size, u_batch_size, NDIMS), dtype='float16')
-    tul_batch = np.empty((u_batch_size, l_batch_size, NDIMS), dtype='float16')
+    yl_batch = np.asarray(y[rand_l])
+    tuu_batch = np.empty((u_batch_size, u_batch_size, NDIMS), dtype='float32')
+    tul_batch = np.empty((u_batch_size, l_batch_size, NDIMS), dtype='float32')
 
-    for (j, j_) in rand_u:
-        for (k, k_) in rand_u:
-            tuu_batch[j, k] = (embeddings[j_] * embeddings[k_]) ** 2
-        for (k, k_) in rand_l:
-            tul_batch[j, k] = (embeddings[j_] * embeddings[k_]) ** 2
+    for (j, j_) in enumerate(rand_u):
+        for (k, k_) in enumerate(rand_u):
+            tuu_batch[j, k] = (embeddings[j_] * embeddings[k_])
+        for (k, k_) in enumerate(rand_l):
+            tul_batch[j, k] = (embeddings[j_] * embeddings[k_])
 
     for epoch in range(epochs):
         h, _, Y, sigmas, epsilon = sess.run([model.entropy, model.train_op, model.y, model.sigmas, model.epsilon],
@@ -217,5 +241,6 @@ for batch in range(n_batches):
                 print([sigma for sigma in sigmas], file=f)
 
             np.savetxt('y_sigmas.txt', normalize(Y, axis=1, norm='l1', copy=False))
+            print('Y matrix saved to emo2vec/y_sigmas.txt')
 
 sess.close()

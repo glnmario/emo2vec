@@ -47,7 +47,6 @@ class Model:
 
         y = tf.concat([y_u, y_l], 0)
         self._y = y = tf.clip_by_value(y, 1e-15, float("inf"))
-        y = tf.Print(y, [y], 'Y:')
 
         self._entropy = entropy = - tf.reduce_sum(y * tf.log(y))
         self._train_op = tf.train.AdamOptimizer(0.1).minimize(entropy)
@@ -230,5 +229,6 @@ for i in range(epochs):
             print('Sigma:', sigma, '\n', file=f)
 
         np.savetxt('y_1sigma.txt', normalize(Y, axis=1, norm='l1', copy=False))
+        print('Y matrix saved to emo2vec/y_1sigma.txt')
 
 sess.close()
