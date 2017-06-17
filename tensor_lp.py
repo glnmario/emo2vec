@@ -20,11 +20,8 @@ class Model:
         self._sigmas = sigmas = tf.get_variable("sigmas", dtype=tf.float32, initializer=sigmas_init)
         # sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
 
-        # tuu = tf.acos(tf.reduce_sum(t_uu / sigmas, axis=2)) / pi
-        # tul = tf.acos(tf.reduce_sum(t_ul / sigmas, axis=2)) / pi
-
-        tuu = tf.reduce_sum((t_uu * sigmas)**2, axis=2)
-        tul = tf.reduce_sum((t_ul * sigmas)**2, axis=2)
+        tuu = tf.reduce_sum(t_uu**2 * sigmas**2, axis=2)
+        tul = tf.reduce_sum(t_ul**2 * sigmas**2, axis=2)
 
         tuu = tf.exp(- tuu)
         tul = tf.exp(- tul)
