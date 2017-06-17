@@ -13,7 +13,7 @@ elif len(sys.argv) == 2:
     epochs = int(sys.argv[1])
     STOP = 50000  # i.e. no number of words limit
 else:
-    sys.exit('Run as: tensor_lp_1sigma.py epochs [# words limit]')
+    sys.exit('Usage: tensor_lp_1sigma.py epochs [word limit]')
 
 class Model:
     def __init__(self, n_labeled, n_unlabeled, n_classes):
@@ -22,7 +22,9 @@ class Model:
         self._y_l = y_l = tf.placeholder(tf.float32, shape=[n_labeled, n_classes])
 
         sigmas_init = tf.random_uniform(shape=[], minval=0.1, maxval=0.9)
-        self._sigma = sigma = tf.get_variable("sigma", dtype=tf.float32, initializer=sigmas_init) ** 2
+        self._sigma = sigma = tf.get_variable("sigma", dtype=tf.float32, initializer=sigmas_init)
+        sigma = sigma ** 2
+
         tuu = tf.exp(- (t_uu ** 2) / sigma)
         tul = tf.exp(- (t_ul ** 2) / sigma)
 
@@ -142,15 +144,20 @@ with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') a
 
 n = line_idx
 print('Found', n, 'word vectors.')
-print(len(word2idx))
 
 embeddings = np.asarray(_embeddings, dtype='float32')
 
 print('Build distance matrix.')
 t = np.empty((n, n), dtype='float32')
+
+log_count = 0
 for j in word2idx.values():
     for k in word2idx.values():
         t[j, k] = cosine_dist(embeddings[j], embeddings[k])
+
+    log_count += 1
+    if log_count % 1000 == 0:
+        print(log_count, "/", n, sep="")
 
 y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float32')
 lexeme2index = dict()
