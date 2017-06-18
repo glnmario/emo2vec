@@ -9,6 +9,10 @@ np.random.seed(13)
 if len(sys.argv) != 4:
     sys.exit('Usage: batch_size, num_batches, num_epochs')
 
+# Lazy way to avoid overwriting old output files
+f = open('log_sigmas.txt', 'x')
+f.close()
+
 class Model:
     def __init__(self, n_labeled, n_unlabeled, input_dims, n_classes):
         self._t_uu = t_uu = tf.placeholder(tf.float32, shape=[n_unlabeled, n_unlabeled, input_dims])
@@ -18,16 +22,13 @@ class Model:
         # sigmas_init = tf.truncated_normal(shape=[input_dims,], mean=1, stddev=0.4, dtype=tf.float32)
         sigmas_init = tf.random_uniform(shape=[input_dims,], minval=1000, maxval=5000)
         self._sigmas = sigmas = tf.get_variable("sigmas", dtype=tf.float32, initializer=sigmas_init)
-        # sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
+        sigmas = tf.Print(sigmas, [sigmas], 'Sigmas: ', summarize=30)
 
         tuu = tf.reduce_sum(t_uu**2 * sigmas**2, axis=2)
         tul = tf.reduce_sum(t_ul**2 * sigmas**2, axis=2)
 
         tuu = tf.exp(- tuu)
         tul = tf.exp(- tul)
-
-        tuu = tf.Print(tuu, [tuu], 'tuu: ', summarize=30)
-        tul = tf.Print(tul, [tul], 'tul: ', summarize=30)
 
         uniform_init = tf.constant_initializer(1 / n_unlabeled+n_labeled, dtype=tf.float32)
         u1 = tf.get_variable("uniform1",
@@ -116,8 +117,8 @@ def read_emo_lemma(aline):
     return split[0], split[1], int(split[2])
 
 
-NUM_EMOTIONS = 6
-NDIMS = 300
+n_emotions = 6
+embed_dim = 300
 
 _embeddings = []
 word2idx = {}
@@ -129,7 +130,7 @@ with open('resources/emotion_specific/bilstm_300d.txt', 'r', encoding='UTF-8') a
         values = line.split()
 
         # probably an error occurred during tokenization
-        if len(values) != NDIMS + 1:
+        if len(values) != embed_dim + 1:
             continue
 
         word = values[0]
@@ -155,7 +156,7 @@ embeddings = normalize(embeddings, axis=1, norm='l1', copy=False)
 
 
 print('Build distance matrix.')
-y_l = np.empty(shape=(14182, NUM_EMOTIONS), dtype='float32')
+y_l = np.empty(shape=(14182, n_emotions), dtype='float32')
 
 lexeme2index = dict()
 with open('resources/data/emolex.txt', 'r') as f:
@@ -168,7 +169,7 @@ with open('resources/data/emolex.txt', 'r') as f:
         if emotion in ['positive', 'negative', 'anticipation', 'trust']:
             continue
         y_l[i][emo_idx] = has_emotion
-        if emo_idx < NUM_EMOTIONS - 1:
+        if emo_idx < n_emotions - 1:
             emo_idx += 1
         else:
             # reset index - next line contains a new lemma
@@ -176,7 +177,7 @@ with open('resources/data/emolex.txt', 'r') as f:
             i += 1
 
 print('Initialize label distribution matrix.')
-y = np.random.random((n, NUM_EMOTIONS))
+y = np.random.random((n, n_emotions))
 
 labeled_indices = []
 for word, idx in lexeme2index.items():
@@ -196,9 +197,14 @@ u = np.setdiff1d(np.asarray(list(word2idx.values()), dtype='int32'), l)
 
 tot_batch_size = int(sys.argv[1])
 n_batches = int(sys.argv[2])
-epochs = int(sys.argv[3])
+n_epochs = int(sys.argv[3])
 l_batch_size = int(tot_batch_size * (5869 / n))
 u_batch_size = tot_batch_size - l_batch_size
+
+with open('log_sigmas.txt', 'w') as f:
+    print('Batch size:', tot_batch_size, file=f)
+    print('Number of batchs:', n_batches, file=f)
+    print('Number of epochs:', n_epochs, "\n", file=f)
 
 print('Tensorflow.')
 config = tf.ConfigProto()
@@ -206,9 +212,11 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.5
 sess = tf.Session(config=config)
 
 with tf.variable_scope("model", reuse=None) as scope:
-    model = Model(l_batch_size, u_batch_size, NDIMS, NUM_EMOTIONS)
+    model = Model(l_batch_size, u_batch_size, embed_dim, n_emotions)
 
 sess.run(tf.global_variables_initializer())
+
+f = open('log_sigmas.txt', 'a')
 
 for batch in range(n_batches):
     print('Batch', batch)
@@ -216,8 +224,8 @@ for batch in range(n_batches):
     rand_l = np.random.choice(l, size=l_batch_size, replace=False)
 
     yl_batch = np.asarray(y[rand_l])
-    tuu_batch = np.empty((u_batch_size, u_batch_size, NDIMS), dtype='float32')
-    tul_batch = np.empty((u_batch_size, l_batch_size, NDIMS), dtype='float32')
+    tuu_batch = np.empty((u_batch_size, u_batch_size, embed_dim), dtype='float32')
+    tul_batch = np.empty((u_batch_size, l_batch_size, embed_dim), dtype='float32')
 
     for (j, j_) in enumerate(rand_u):
         for (k, k_) in enumerate(rand_u):
@@ -225,19 +233,18 @@ for batch in range(n_batches):
         for (k, k_) in enumerate(rand_l):
             tul_batch[j, k] = (embeddings[j_] * embeddings[k_])
 
-    for epoch in range(epochs):
+    for epoch in range(n_epochs):
         h, _, Y, sigmas, epsilon = sess.run([model.entropy, model.train_op, model.y, model.sigmas, model.epsilon],
                                                  {model.t_uu: tuu_batch, model.t_ul: tul_batch, model.y_l: yl_batch})
 
-        print(h)
-        if batch == n_batches - 1 and epoch == epochs - 1:
-            with open('log_sigmas.txt', 'w') as f:
-                print('Entropy:', h, '\n', file=f)
-                print('Epsilon:', epsilon, '\n', file=f)
-                print('Sigmas:', file=f)
-                print([sigma for sigma in sigmas], file=f)
+        print(epoch, ': ', h, sep='', file=f)
 
-            np.savetxt('y_sigmas.txt', normalize(Y, axis=1, norm='l1', copy=False))
-            print('Y matrix saved to emo2vec/y_sigmas.txt')
+        if batch == n_batches - 1 and epoch == n_epochs - 1:
+            print('\n\nEntropy:', h, file=f)
+            print('Epsilon:', epsilon, '\n', file=f)
+            print('Sigmas:', file=f)
+            print([sigma for sigma in sigmas], file=f)
+            print('Output saved to emo2vec/log_sigmas.t.txt')
 
+f.close()
 sess.close()
