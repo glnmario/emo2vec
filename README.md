@@ -2,13 +2,8 @@
 
 #### Learning emotion-specific embeddings.
 
-The Hashtag Emotion Corpus is used to train three different `models`: 1d-CNN with pooling, LSTM, CNN+LSTM. These models are implemented with [Keras](https://keras.io/) and they try to predict an emotion label for each tweet in the corpus, thus learning *emotion-specific* word embeddings. All models come with their [Hyperas](http://maxpumperla.github.io/hyperas/) `optimizers`, which perform hyperparameter optimization.
-The skip-gram model with negative sampling is used to pre-train word embeddings.
-
-Paraphernalia:
-- `simple_classifier.py` is a trivial fuzzy classifier based on Emolex
-- `agreement.py` evaluates agreement between gold standard and otherwise obtained labels
-- `similarity.py` prints the 10 most similar word-vectors to a list of defined target words, according to the learned models
+In the proposed framework, emotion-specific word embeddings are learned from a corpus of texts labeled with six basic emotions (anger, disgust, fear, joy, sadness, and surprise). We use a Long Short Term Memory (LSTM) recurrent network \citep{hochreiter1997lstm} that learns emotion-specific representations of words via backpropagation, where the \textit{emotion-specificity} of a word vector refers to the ability to encode affectual orientation and strength in a subset of its dimensions.
+The derived vector space model is used to expand an existing emotion lexicon via a novel variant of the Label Propagation algorithm that is tailored to distributed word representations. Batch gradient descent is used to accelerate the optimization of label propagation and to make the optimization feasible for large graphs. 
 
 
 #### Resources
