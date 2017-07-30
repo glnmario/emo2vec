@@ -2,7 +2,8 @@
 
 #### Learning emotion-specific embeddings.
 
-In the proposed framework, emotion-specific word embeddings are learned from a corpus of texts labeled with six basic emotions (anger, disgust, fear, joy, sadness, and surprise). We use a Long Short Term Memory (LSTM) recurrent network \citep{hochreiter1997lstm} that learns emotion-specific representations of words via backpropagation, where the \textit{emotion-specificity} of a word vector refers to the ability to encode affectual orientation and strength in a subset of its dimensions.
+In the proposed framework, emotion-specific word embeddings are learned from a corpus of texts labeled with six basic emotions (anger, disgust, fear, joy, sadness, and surprise). We use a Long Short Term Memory (LSTM) recurrent network that learns emotion-specific representations of words via backpropagation, where the _emotion-specificity_ of a word vector refers to the ability to encode affectual orientation and strength in a subset of its dimensions.
+
 The derived vector space model is used to expand an existing emotion lexicon via a novel variant of the Label Propagation algorithm that is tailored to distributed word representations. Batch gradient descent is used to accelerate the optimization of label propagation and to make the optimization feasible for large graphs. 
 
 
