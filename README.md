@@ -1,6 +1,6 @@
 # emo2vec
 
-#### Learning emotion-specific embeddings.
+#### Semi-supervised emotion lexicon expansion with label propagation and specialized word embeddings
 
 In the proposed framework, emotion-specific word embeddings are learned from a corpus of texts labeled with six basic emotions (anger, disgust, fear, joy, sadness, and surprise). We use a Long Short Term Memory (LSTM) recurrent network that learns emotion-specific representations of words via backpropagation, where the _emotion-specificity_ of a word vector refers to the ability to encode affectual orientation and strength in a subset of its dimensions.
 
