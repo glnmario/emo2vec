@@ -6,6 +6,7 @@ In the proposed framework, emotion-specific word embeddings are learned from a c
 
 The derived vector space model is used to expand an existing emotion lexicon via a novel variant of the Label Propagation algorithm that is tailored to distributed word representations. Batch gradient descent is used to accelerate the optimization of label propagation and to make the optimization feasible for large graphs. 
 
+- Mario Giulianelli, [Semi-supervised emotion lexicon expansion with label propagation and specialized word embeddings](https://arxiv.org/abs/1708.03910), 2017, Bachelor's Thesis
 
 #### Resources
 
